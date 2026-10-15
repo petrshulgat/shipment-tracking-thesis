@@ -16,8 +16,11 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-06 | Docker Compose for deployment | Manual local install | Reproducible, clean-database restarts for benchmarks | Docker overhead on a laptop | Decided |
 | D-07 | No full UI; Swagger UI plus optional Streamlit dashboard | Full web application | Thesis focus is data engineering and performance, not interface design | Less visual polish | Decided |
 | D-08 | Out of scope: authentication, sharding, multi-node clusters | Include them | Keeps the project within thesis size | Listed as future work | Decided |
+| D-09 | Add couriers collection and optional courier_id on events | No couriers; courier info embedded in events | Enables per-courier ETL metrics (success rate, failed attempts) | One more reference collection and one more index on events | Decided |
+| D-10 | Keep a denormalized current_status in shipments, updated per micro-batch | Derive status from the latest event at query time | Latest-status query is a single read by _id (NFR-03) | Extra write per batch; needs the out-of-order rule in section 5 | Decided |
+| D-11 | Update current_status only when the new ts is newer than last_event_ts | Always overwrite | Late events must not overwrite newer status | Conditional update per shipment | Decided |
 
-## Open decisions (to resolve in Month 2-4)
+## Open decisions 
 
 | ID | Question | Options | Decide by |
 |---|---|---|---|
