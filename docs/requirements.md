@@ -16,19 +16,20 @@ Build and evaluate a shipment tracking system on MongoDB that ingests high-frequ
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-01 | Create a shipment with ID, sender, recipient, origin, destination, and service type | Must |
-| FR-02 | Record a tracking event (shipment ID, event type, timestamp, location, facility, source) | Must |
+| FR-02 | Record a tracking event (shipment ID, event type, timestamp, location, facility, source, courier_id (optional)) | Must |
 | FR-03 | Ingest events through a Kafka topic with a consumer writing micro-batches to MongoDB | Must |
 | FR-04 | Ingest events through a direct bulk insert path | Must |
 | FR-05 | Update the shipment's current status when a new event arrives | Must |
 | FR-06 | Return the current status of a shipment | Must |
 | FR-07 | Return the full event history of a shipment in time order | Must |
-| FR-08 | Query events by facility and time range | Should |
-| FR-09 | Run a batch ETL job that computes: average delivery time, delivery success rate, failed attempts, events per hub | Must |
+| FR-08 | Query events by facility and time range or by courier | Should |
+| FR-09 | Run a batch ETL job that computes: average delivery time, delivery success rate, failed attempts, events per hub, delivery success rate and failed attempts per courier | Must |
 | FR-10 | Store ETL results in an `analytics` collection and expose them through the API | Must |
 | FR-11 | Schedule the ETL job to run automatically | Should |
 | FR-12 | Generate a simulated dataset of configurable size (100k, 1M, 10M events) | Must |
 | FR-13 | Run benchmarks (insert throughput, query latency, ETL runtime) and export results as tables and charts | Must |
 | FR-14 | Show metrics and benchmark results in a dashboard | Could |
+| FR-15 | Couriers collection | Should |
 
 ## 3. Non-functional requirements
 
