@@ -46,7 +46,7 @@ db.events.aggregate([
 
 # AP-09 write ETL results (upsert: reruns do not duplicate)
 db.analytics.update_one(
-    {"metric": m, "scope": s, "period_start": ps, "period_end": pe},
+    {"metric": m, "scope.type": st, "scope.value": sv, "period_start": ps, "period_end": pe},
     {"$set": {"value": v, "computed_at": now, "run_id": run_id}}, upsert=True)
 
 # AP-10 get metrics

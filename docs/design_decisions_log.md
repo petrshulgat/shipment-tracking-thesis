@@ -19,6 +19,12 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-09 | Add couriers collection and optional courier_id on events | No couriers; courier info embedded in events | Enables per-courier ETL metrics (success rate, failed attempts) | One more reference collection and one more index on events | Decided |
 | D-10 | Keep a denormalized current_status in shipments, updated per micro-batch | Derive status from the latest event at query time | Latest-status query is a single read by _id (NFR-03) | Extra write per batch; needs the out-of-order rule in section 5 | Decided |
 | D-11 | Update current_status only when the new ts is newer than last_event_ts | Always overwrite | Late events must not overwrite newer status | Conditional update per shipment | Decided |
+| D-12 | ETL window is one day, `[start, end)` on `events.ts` | Hourly window; one run over the whole dataset | Matches the daily schedule, and a day is a natural unit for reports and reruns | Metrics are available only after the day ends | Decided |
+| D-13 | Average delivery time = `delivered` event `ts` minus `shipments.created_at` | From the first `picked_up` event | Simplest; needs only a `$lookup` on the indexed `_id` | Includes time before pickup, so it is less precise than pickup-to-delivery | Decided |
+| D-14 | Success rate is attempt-based: delivered / (delivered + delivery_failed) | Shipment-based (share of shipments delivered on the first try) | Matches the existing courier query and FR-09 | Counts repeated attempts of the same shipment separately | Decided |
+| D-15 | `events_per_hub` counts only facilities with `type: "hub"`; hub IDs are read once in Python | Count all `facility_id` values; `$lookup` into `facilities` | Matches "per hub" in FR-09; `facilities` is tiny, so no join is needed | One extra small read per ETL run | Decided |
+| D-16 | Rerun: upsert, then delete same-period documents with another `run_id`; the daily job also recomputes the previous day | Insert only; delete the whole period before writing | Reruns never duplicate, stale metrics are removed, and late Kafka events are caught | Two days are recomputed every night | Decided |
+| D-17 | `ts` and `created_at` are stored as BSON `Date`, not ISO strings | ISO strings | `$dateTrunc` and `$subtract` need real dates; dates also sort and compare correctly | The generator and consumer must convert timestamps | Decided |
 
 ## Open decisions 
 
