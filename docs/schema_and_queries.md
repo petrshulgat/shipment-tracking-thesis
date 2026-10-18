@@ -72,10 +72,11 @@
   "period_end": "2026-03-02T00:00:00Z",
   "value": 0.94,
   "computed_at": "2026-03-02T01:00:00Z",
-  "run_id": "etl_2026-03-02_01"
+  "run_id": "etl_2026-03-01_20260302T010000",
+  "n" : 100
 }
 ```
-
+#ts stored as Date
 ## 3. Queries (PyMongo)
 
 ```python
