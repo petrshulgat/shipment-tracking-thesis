@@ -7,7 +7,7 @@
 | AP-01 | Create shipment | FR-01 | write | shipments | insert one | low | none |
 | AP-02 | Insert event micro-batch (streaming) | FR-02/03 | write | events | `insert_many`, unordered, 100 to 5,000 docs | very high | >= 5,000 events/s (NFR-01) |
 | AP-03 | Bulk load events | FR-04 | write | events | `insert_many` in large chunks | batch | none (measured) |
-| AP-04 | Update current status per batch | FR-05 | write | shipments | filter `_id`, `last_event_ts` older than new ts; set `current_status` | very high | must not slow AP-02 |
+| AP-04 | Update current status per batch, streaming only | FR-05 | write | shipments | filter `_id`, `last_event_ts` older than new ts; set `current_status` | very high | must not slow AP-02 |
 | AP-05 | Get current status | FR-06 | read | shipments | filter `_id`; returns `current_status` | high | p95 < 20 ms at 1M events (NFR-03) |
 | AP-06 | Get event history | FR-07 | read | events | filter `shipment_id`; sort `ts` asc | high | p95 < 50 ms at 1M events (NFR-02) |
 | AP-07 | Events by facility and time range | FR-08 | read | events | filter `facility_id`, `ts` range; sort `ts` | medium | none yet |
@@ -83,7 +83,7 @@
 # AP-01 create shipment
 db.shipments.insert_one(shipment_doc)
 
-# AP-02 / AP-03 insert events (unordered: a duplicate _id does not stop the batch)
+# AP-02 / AP-03 insert events (unordered: a duplicate _id does not stop the batch) shipments inserted with final current_status
 db.events.insert_many(batch, ordered=False)
 
 # AP-04 status update, only if the new event is newer.
@@ -158,3 +158,4 @@ Configurations: `none` = automatic `_id` indexes only; `minimal` = rows marked y
 - **Status update rule:** `current_status` changes only if the new event `ts` is greater than `last_event_ts`. Kafka guarantees order only inside one partition (NFR-08), so micro-batches can still deliver late events.
 - **Idempotency:** `_id` = `event_id`; a duplicate insert raises a duplicate key error that the consumer ignores (O-05).
 - **Reference, don't embed:** events store `facility_id` and `courier_id`; names live in `facilities` and `couriers`.
+- the bulk path sets status in the generator
