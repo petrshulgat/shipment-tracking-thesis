@@ -25,7 +25,8 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-15 | `events_per_hub` counts only facilities with `type: "hub"`; hub IDs are read once in Python | Count all `facility_id` values; `$lookup` into `facilities` | Matches "per hub" in FR-09; `facilities` is tiny, so no join is needed | One extra small read per ETL run | Decided |
 | D-16 | Rerun: upsert, then delete same-period documents with another `run_id`; the daily job also recomputes the previous day | Insert only; delete the whole period before writing | Reruns never duplicate, stale metrics are removed, and late Kafka events are caught | Two days are recomputed every night | Decided |
 | D-17 | `ts` and `created_at` are stored as BSON `Date`, not ISO strings | ISO strings | `$dateTrunc` and `$subtract` need real dates; dates also sort and compare correctly | The generator and consumer must convert timestamps | Decided |
-| D-18 | bulk-loaded shipments get current_status computed by the generator; bulk loader only inserts shipments and events, does not run AP-04 | post-load $merge pass; no status on bulk data | NFR-03 and FR-06 must work on 1M/10M datasets, and bulk throughput stays clean | the streaming path does extra status writes that bulk doesn’t, so report this when comparing the two | Desided |
+| D-18 | bulk-loaded shipments get current_status computed by the generator; bulk loader only inserts shipments and events, does not run AP-04 | post-load $merge pass; no status on bulk data | NFR-03 and FR-06 must work on 1M/10M datasets, and bulk throughput stays clean | the streaming path does extra status writes that bulk doesn’t, so report this when comparing the two | Decided |
+| D-19 | Streaming path: the generator pre-creates shipments with no current_status field, then produces events. |  | AP-04 needs existing shipment documents | shipments must exist before their events arrive | Decided |
 
 ## Open decisions 
 

@@ -19,7 +19,7 @@ Build and evaluate a shipment tracking system on MongoDB that ingests high-frequ
 | FR-02 | Record a tracking event (shipment ID, event type, timestamp, location, facility, source, courier_id (optional)) | Must |
 | FR-03 | Ingest events through a Kafka topic with a consumer writing micro-batches to MongoDB | Must |
 | FR-04 | Ingest events through a direct bulk insert path | Must |
-| FR-05 | Update the shipment's current status when a new event arrives | Must |
+| FR-05 | Update the shipment's current status when a new event arrives (streaming path; bulk path sets it at generation, D-18) | Must |
 | FR-06 | Return the current status of a shipment | Must |
 | FR-07 | Return the full event history of a shipment in time order | Must |
 | FR-08 | Query events by facility and time range or by courier | Should |
@@ -57,6 +57,6 @@ Build and evaluate a shipment tracking system on MongoDB that ingests high-frequ
 ## 5. Acceptance criteria
 
 1. The demo runs from a clean start: generator produces events, Kafka delivers them, the document count in MongoDB rises, and the counts match.
-2. API returns correct status and history for sampled shipments.
+2. API returns correct status and history for sampled shipments. Both paths give identical current_status for the same event stream
 3. ETL output matches a manually computed sample.
 4. Benchmark results exist for all planned experiments, with the test environment described.
