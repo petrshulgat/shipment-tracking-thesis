@@ -26,6 +26,9 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-16 | `ts` and `created_at` are stored as BSON `Date`, not ISO strings | ISO strings | `$dateTrunc` and `$subtract` need real dates; dates also sort and compare correctly | The generator must produce real datetime values | Decided |
 | D-17 | bulk-loaded shipments get current_status computed by the generator; bulk loader only inserts shipments and events, does not run AP-04 | post-load $merge pass; no status on bulk data | NFR-03 and FR-06 must work on 1M/10M datasets, and bulk throughput stays clean | the direct path does extra status writes that bulk doesn’t, so report this when comparing the two | Decided |
 | D-18 | Direct insert path: the generator pre-creates shipments with no current_status field, then inserts events. |  | AP-04 needs existing shipment documents | shipments must exist before their events arrive | Decided |
+| D-19 | Idempotent inserts: each event's `_id` is its unique `event_id`; events are written with `insert_many(ordered=False)` and duplicate key errors (code 11000) are ignored, any other write error is raised | Upsert per event; check for existence before insert | Meets NFR-07; a retried batch cannot create duplicates, and an unordered insert keeps writing past a duplicate; keeps insert_many speed for the benchmarks | The generator must create unique, repeatable event IDs; duplicate errors must be told apart from real errors | Decided (resolves O-04) |
+| D-20 | ETL scheduler: APScheduler cron trigger at 01:00 UTC, in its own container; the CLI is kept for manual and benchmark runs | Sleep loop; system cron running the CLI | Cron-style trigger in a few lines of Python, no OS cron setup in the container | One extra dependency | Decided |
+| D-21 | The generator gives the events of one shipment strictly increasing `ts` values | Allow equal `ts` and let the first generated event win | No ties, so the direct path (AP-04) and the bulk path (D-17) always give the same current_status (acceptance criterion 2) | Slightly less realistic: real scanners can produce equal timestamps | Decided |
 
 ## Open decisions 
 
@@ -34,6 +37,6 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | O-01 | `events` as regular or time-series collection | Regular + indexes; time-series; bucket pattern | Month 2, Week 2 |
 | O-02 | Final index set for `events` and `shipments` | No index / minimal / full (compared as experiment variable) | Month 2, Week 3 |
 | O-03 | Direct insert batch size | e.g. 1 / 100 / 1,000 / 5,000 events | Month 4 (experiment) |
-| O-04 | Duplicate handling on retried inserts | Idempotent insert (unique event ID) | Month 3 |
+| O-04 | Duplicate handling on retried inserts | Idempotent insert (unique event ID) | Resolved by D-19 |
 | O-05 | Geospatial (`2dsphere`) index and location queries | Include / exclude | Month 2, Week 3 |
 | O-06 | Dashboard: build or skip | Streamlit / skip | Month 6 |

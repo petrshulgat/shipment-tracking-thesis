@@ -5,7 +5,7 @@ db.shipments.insert_one(shipment_doc)
 db.events.insert_many(batch, ordered=False)
 
 # AP-04 status update, only if the new event is newer.
-# In the direct insert path: build one UpdateOne per shipment (last event of the batch) and send with bulk_write.
+# In the direct insert path: build one UpdateOne per shipment (the event with the latest ts in the batch) and send with bulk_write.
 db.shipments.update_one(
     {"_id": shipment_id,
      "$or": [{"current_status.last_event_ts": {"$lt": ts}},
@@ -25,12 +25,12 @@ db.events.find({"shipment_id": shipment_id}).sort("ts", 1)
 db.events.find({"facility_id": facility_id,
                 "ts": {"$gte": start, "$lt": end}}).sort("ts", 1)
 
-# AP-08 ETL example: events per hub per day
+# AP-08 ETL example: events per hub for one day window (D-11, D-14)
+# hub_ids = [f["_id"] for f in db.facilities.find({"type": "hub"}, {"_id": 1})]
 db.events.aggregate([
-    {"$match": {"ts": {"$gte": start, "$lt": end}}},
-    {"$group": {"_id": {"hub": "$facility_id",
-                        "day": {"$dateTrunc": {"date": "$ts", "unit": "day"}}},
-                "count": {"$sum": 1}}}
+    {"$match": {"ts": {"$gte": start, "$lt": end},
+                "facility_id": {"$in": hub_ids}}},
+    {"$group": {"_id": "$facility_id", "count": {"$sum": 1}}}
 ])
 
 # AP-08 ETL example: delivery success rate per courier
@@ -47,7 +47,7 @@ db.events.aggregate([
 # AP-09 write ETL results (upsert: reruns do not duplicate)
 db.analytics.update_one(
     {"metric": m, "scope.type": st, "scope.value": sv, "period_start": ps, "period_end": pe},
-    {"$set": {"value": v, "computed_at": now, "run_id": run_id}}, upsert=True)
+    {"$set": {"value": v, "n": n, "computed_at": now, "run_id": run_id}}, upsert=True)
 
 # AP-10 get metrics
 db.analytics.find({"metric": metric, "scope.type": t, "period_start": {"$gte": start}})

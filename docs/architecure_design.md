@@ -24,7 +24,7 @@ flowchart LR
     API["<b>FastAPI</b><br/>status (AP-05), history (AP-06)<br/>by facility (AP-07), by courier (AP-11)<br/>metrics (AP-10)"]
  
     SCHED["<b>Scheduler</b><br/>APScheduler, daily 01:00 UTC<br/>previous day + day before"]
-    ETL["<b>Batch ETL</b><br/>Python + aggregation pipelines<br/>avg delivery time, success rate,<br/>failed attempts, events per hub"]
+    ETL["<b>Batch ETL</b><br/>Python + aggregation pipelines<br/>avg delivery time, success rate,<br/>failed attempts, events per hub,<br/>per-courier success rate + failed attempts"]
  
     BENCH["<b>Benchmark Module</b><br/>insert throughput, query latency,<br/>ETL runtime"]
     RES[/"benchmarks/results<br/>tables, charts"/]
@@ -32,6 +32,7 @@ flowchart LR
   end
  
   %% Direct insert path
+  GEN -->|pre-create shipments, no current_status D-18| SH
   GEN -->|events| DIRECT
   DIRECT -->|insert events| EV
   DIRECT -->|update current_status| SH

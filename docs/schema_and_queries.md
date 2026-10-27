@@ -18,6 +18,8 @@
 
 ## 2. Example documents
 
+Dates (`created_at`, `ts`, `last_event_ts`, `period_*`, `computed_at`) are shown as ISO strings for readability; they are stored as BSON `Date` (D-16).
+
 ### shipments
 ```json
 {
@@ -87,7 +89,7 @@ db.shipments.insert_one(shipment_doc)
 db.events.insert_many(batch, ordered=False)
 
 # AP-04 status update, only if the new event is newer.
-# In the direct insert path: build one UpdateOne per shipment (last event of the batch) and send with bulk_write.
+# In the direct insert path: build one UpdateOne per shipment (the event with the latest ts in the batch) and send with bulk_write.
 db.shipments.update_one(
     {"_id": shipment_id,
      "$or": [{"current_status.last_event_ts": {"$lt": ts}},
@@ -107,12 +109,12 @@ db.events.find({"shipment_id": shipment_id}).sort("ts", 1)
 db.events.find({"facility_id": facility_id,
                 "ts": {"$gte": start, "$lt": end}}).sort("ts", 1)
 
-# AP-08 ETL example: events per hub per day
+# AP-08 ETL example: events per hub for one day window (D-11, D-14)
+# hub_ids = [f["_id"] for f in db.facilities.find({"type": "hub"}, {"_id": 1})]
 db.events.aggregate([
-    {"$match": {"ts": {"$gte": start, "$lt": end}}},
-    {"$group": {"_id": {"hub": "$facility_id",
-                        "day": {"$dateTrunc": {"date": "$ts", "unit": "day"}}},
-                "count": {"$sum": 1}}}
+    {"$match": {"ts": {"$gte": start, "$lt": end},
+                "facility_id": {"$in": hub_ids}}},
+    {"$group": {"_id": "$facility_id", "count": {"$sum": 1}}}
 ])
 
 # AP-08 ETL example: delivery success rate per courier
@@ -129,7 +131,7 @@ db.events.aggregate([
 # AP-09 write ETL results (upsert: reruns do not duplicate)
 db.analytics.update_one(
     {"metric": m, "scope.type": st, "scope.value": sv, "period_start": ps, "period_end": pe},
-    {"$set": {"value": v, "computed_at": now, "run_id": run_id}}, upsert=True)
+    {"$set": {"value": v, "n": n, "computed_at": now, "run_id": run_id}}, upsert=True)
 
 # AP-10 get metrics
 db.analytics.find({"metric": metric, "scope.type": t, "period_start": {"$gte": start}})
@@ -156,7 +158,8 @@ Configurations: `none` = automatic `_id` indexes only; `minimal` = rows marked y
 ## 5. Rules
 
 - **Status update rule:** `current_status` changes only if the new event `ts` is greater than `last_event_ts`. Events can arrive out of order (for example retries or late scans), so a late event must not overwrite a newer status.
-- **Idempotency:** `_id` = `event_id`; a duplicate insert raises a duplicate key error that the insert path ignores (O-04).
+- **Idempotency:** `_id` = `event_id`; a duplicate insert raises a duplicate key error that the insert path ignores (D-19).
 - **Reference, don't embed:** events store `facility_id` and `courier_id`; names live in `facilities` and `couriers`.
 - the bulk path sets status in the generator
 - D-10 applies only to the direct insert path
+- Events of one shipment have strictly increasing `ts` (D-21), so there are no ties in the status rule

@@ -16,7 +16,7 @@ erDiagram
     string destination
     string service_type
     date created_at
-    object current_status "status, last_event_ts, last_facility_id, last_courier_id"
+    object current_status "optional: absent until first event on direct path (D-18); status, last_event_ts, last_facility_id, last_courier_id"
   }
   EVENTS {
     string _id PK "event_id"

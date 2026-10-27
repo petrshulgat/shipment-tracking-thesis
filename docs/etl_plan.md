@@ -65,7 +65,7 @@ Collection `analytics`, one document per metric, scope and period:
 
 - A daily job runs at 01:00 UTC.
 - It computes the previous day and recomputes the day before, to catch late events (D-15).
-- The scheduler runs in a separate container (APScheduler), or as a simple sleep loop.
+- The scheduler runs in a separate container with APScheduler (D-20).
 - A manual CLI runs a date range: `python -m app.etl.run --start YYYY-MM-DD --end YYYY-MM-DD`. The benchmarks use it to time the ETL over 100k, 1M and 10M events (NFR-05).
 
 ## 6. Rerun behavior
