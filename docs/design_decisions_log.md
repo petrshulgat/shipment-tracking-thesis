@@ -11,7 +11,7 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-01 | Store events in a separate `events` collection, not embedded in `shipments` | Embed events array in the shipment document | Unbounded array growth; better for high-frequency append-only inserts | Latest-status and history need separate reads | Decided |
 | D-02 | Two ingestion paths: direct insert and bulk insert | Bulk only; API insert only | Direct insert shows a realistic per-event flow with status updates; bulk gives raw database throughput and fast large-dataset generation | Two code paths to maintain and compare | Decided |
 | D-03 | Batch ETL for analytics (not real-time aggregation) | Real-time aggregation on every insert | Fits scope and the thesis plan; simpler to validate | Metrics are not real-time | Decided |
-| D-04 | FastAPI as the API layer | Flask, Django REST | Async support, Pydantic validation, automatic Swagger docs | None significant | Decided |
+| D-04 | FastAPI as the API layer | Flask, Django REST | Async support, Pydantic validation, automatic Swagger docs | None significant | Superseded by D-24 |
 | D-05 | Docker Compose for deployment | Manual local install | Reproducible, clean-database restarts for benchmarks | Docker overhead on a laptop | Decided |
 | D-06 | No full UI; Swagger UI plus optional Streamlit dashboard | Full web application | Thesis focus is data engineering and performance, not interface design | Less visual polish | Decided |
 | D-07 | Out of scope: authentication, sharding, multi-node clusters | Include them | Keeps the project within thesis size | Listed as future work | Decided |
@@ -29,14 +29,17 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-19 | Idempotent inserts: each event's `_id` is its unique `event_id`; events are written with `insert_many(ordered=False)` and duplicate key errors (code 11000) are ignored, any other write error is raised | Upsert per event; check for existence before insert | Meets NFR-07; a retried batch cannot create duplicates, and an unordered insert keeps writing past a duplicate; keeps insert_many speed for the benchmarks | The generator must create unique, repeatable event IDs; duplicate errors must be told apart from real errors | Decided (resolves O-04) |
 | D-20 | ETL scheduler: APScheduler cron trigger at 01:00 UTC, in its own container; the CLI is kept for manual and benchmark runs | Sleep loop; system cron running the CLI | Cron-style trigger in a few lines of Python, no OS cron setup in the container | One extra dependency | Decided |
 | D-21 | The generator gives the events of one shipment strictly increasing `ts` values | Allow equal `ts` and let the first generated event win | No ties, so the direct path (AP-04) and the bulk path (D-17) always give the same current_status (acceptance criterion 2) | Slightly less realistic: real scanners can produce equal timestamps | Decided |
+| D-22 | `events` is a regular collection with secondary indexes | Time-series collection; bucket pattern | A time-series collection has no unique `_id` index, so D-19 (idempotent inserts) would not work; regular collections support all planned indexes (O-02) | No automatic bucketing or compression, so storage is larger at 10M events | Decided (resolves O-01) |
+| D-23 | FastAPI uses the synchronous PyMongo client; endpoints are plain `def` functions | PyMongo async API (`AsyncMongoClient`); Motor | Same driver and query code as ingestion, ETL and benchmarks; FastAPI runs `def` endpoints in a thread pool, so blocking database calls do not block the server | FastAPI's async support is not used; concurrency is limited by the thread pool size | Decided |
+| D-24 | FastAPI as the API layer | Flask, Django REST | Pydantic validation of requests and responses, automatic Swagger docs (the only UI, D-06) | None significant | Decided (supersedes D-04) |
 
 ## Open decisions 
 
 | ID | Question | Options | Decide by |
 |---|---|---|---|
-| O-01 | `events` as regular or time-series collection | Regular + indexes; time-series; bucket pattern | Month 2, Week 2 |
+| O-01 | `events` as regular or time-series collection | Regular + indexes; time-series; bucket pattern | Resolved by D-22 |
 | O-02 | Final index set for `events` and `shipments` | No index / minimal / full (compared as experiment variable) | Month 2, Week 3 |
-| O-03 | Direct insert batch size | e.g. 1 / 100 / 1,000 / 5,000 events | Month 4 (experiment) |
+| O-03 | Direct insert batch size | e.g. 1 / 100 / 1,000 / 5,000 events (temporary default: 1,000, configurable) | Month 4 (experiment) |
 | O-04 | Duplicate handling on retried inserts | Idempotent insert (unique event ID) | Resolved by D-19 |
 | O-05 | Geospatial (`2dsphere`) index and location queries | Include / exclude | Month 2, Week 3 |
 | O-06 | Dashboard: build or skip | Streamlit / skip | Month 6 |
