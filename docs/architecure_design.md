@@ -7,12 +7,7 @@ flowchart LR
  
     GEN["<b>Data Generator</b><br/>Python, Faker, fixed seed<br/>shipments + events<br/>final current_status for bulk"]
  
-    subgraph STREAM["Streaming path"]
-      direction TB
-      KAFKA["<b>Apache Kafka</b><br/>topic: shipment-events<br/>key = shipment_id"]
-      CONS["<b>Stream Consumer</b><br/>micro-batches of N events<br/>insert_many (AP-02)<br/>+ status update (AP-04)"]
-      KAFKA --> CONS
-    end
+    DIRECT["<b>Direct Inserter</b><br/>batches of N events<br/>insert_many (AP-02)<br/>+ status update (AP-04)"]
  
     BULK["<b>Bulk Loader</b><br/>insert_many in large chunks (AP-03)<br/>shipments with final status + events<br/>no AP-04"]
  
@@ -36,10 +31,10 @@ flowchart LR
     DASH["<b>Dashboard</b> (optional)<br/>Streamlit"]
   end
  
-  %% Streaming path
-  GEN -->|events| KAFKA
-  CONS -->|insert events| EV
-  CONS -->|update current_status| SH
+  %% Direct insert path
+  GEN -->|events| DIRECT
+  DIRECT -->|insert events| EV
+  DIRECT -->|update current_status| SH
  
   %% Bulk path
   GEN -->|shipments + events| BULK
@@ -61,7 +56,7 @@ flowchart LR
  
   %% Monitoring / benchmarking
   BENCH -.->|load test| BULK
-  BENCH -.->|load test| KAFKA
+  BENCH -.->|load test| DIRECT
   BENCH -.->|query latency| API
   BENCH -.->|ETL CLI runtime| ETL
   BENCH --> RES
@@ -69,7 +64,7 @@ flowchart LR
   AN -.-> DASH
  
   classDef gen fill:#f1f3f5,stroke:#495057,color:#212529;
-  classDef stream fill:#dbe4ff,stroke:#3b5bdb,color:#1b2a6b;
+  classDef direct fill:#dbe4ff,stroke:#3b5bdb,color:#1b2a6b;
   classDef bulk fill:#c3fae8,stroke:#0ca678,color:#064e3b;
   classDef api fill:#e5dbff,stroke:#7048e8,color:#3b1d8f;
   classDef etl fill:#ffe8cc,stroke:#e8590c,color:#7a2e00;
@@ -77,7 +72,7 @@ flowchart LR
   classDef db fill:#d3f9d8,stroke:#2f9e44,color:#1b4d2b;
  
   class GEN,CLIENT gen;
-  class KAFKA,CONS stream;
+  class DIRECT direct;
   class BULK bulk;
   class API api;
   class SCHED,ETL etl;

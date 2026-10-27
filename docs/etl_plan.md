@@ -1,12 +1,12 @@
 # ETL Plan
 
-Thesis: MongoDB-based shipment tracking pipeline (streaming ingestion, batch ETL, benchmarking)
+Thesis: MongoDB-based shipment tracking pipeline (event ingestion, batch ETL, benchmarking)
 
-Related: FR-09, FR-10, FR-11, NFR-05, AP-08, AP-09, AP-10, decisions D-04, D-12 to D-17.
+Related: FR-09, FR-10, FR-11, NFR-05, AP-08, AP-09, AP-10, decisions D-03, D-11 to D-16.
 
 ## 1. Purpose
 
-A batch ETL job turns raw tracking events into aggregated metrics. It reads from `events` (and `shipments`), computes metrics with MongoDB aggregation pipelines, and writes the results to `analytics`. It does not depend on how an event arrived (Kafka or bulk load). There is no streaming ETL (D-04).
+A batch ETL job turns raw tracking events into aggregated metrics. It reads from `events` (and `shipments`), computes metrics with MongoDB aggregation pipelines, and writes the results to `analytics`. It does not depend on how an event arrived (direct insert or bulk load). There is no real-time ETL (D-03).
 
 | Step | In this project |
 |---|---|
@@ -22,17 +22,17 @@ A batch ETL job turns raw tracking events into aggregated metrics. It reads from
 | `shipments` | `created_at` | Joined by `$lookup` on `_id` (indexed). Only for average delivery time |
 | `facilities` | `_id`, `type` | Read once in Python to get the hub IDs (few documents, no `$lookup`) |
 
-- **Window:** one day, `[period_start, period_end)`, applied to `events.ts` (D-12).
-- **Data types:** `events.ts` and `shipments.created_at` must be BSON `Date`, not ISO strings (D-17).
+- **Window:** one day, `[period_start, period_end)`, applied to `events.ts` (D-11).
+- **Data types:** `events.ts` and `shipments.created_at` must be BSON `Date`, not ISO strings (D-16).
 
 ## 3. Metrics
 
 | Metric | Scope | Formula |
 |---|---|---|
-| `avg_delivery_time_s` | global | Average of (`delivered` event `ts` − `shipments.created_at`) for deliveries in the window, in seconds (D-13) |
-| `delivery_success_rate` | global, courier | delivered / (delivered + delivery_failed) (D-14) |
+| `avg_delivery_time_s` | global | Average of (`delivered` event `ts` − `shipments.created_at`) for deliveries in the window, in seconds (D-12) |
+| `delivery_success_rate` | global, courier | delivered / (delivered + delivery_failed) (D-13) |
 | `failed_attempts` | global, courier | Count of `delivery_failed` events |
-| `events_per_hub` | hub | Count of events per `facility_id`, only facilities with `type: "hub"` (D-15) |
+| `events_per_hub` | hub | Count of events per `facility_id`, only facilities with `type: "hub"` (D-14) |
 
 Notes:
 - Courier metrics only use events with a non-null `courier_id`.
@@ -64,7 +64,7 @@ Collection `analytics`, one document per metric, scope and period:
 ## 5. Schedule (FR-11)
 
 - A daily job runs at 01:00 UTC.
-- It computes the previous day and recomputes the day before, to catch late events (D-16).
+- It computes the previous day and recomputes the day before, to catch late events (D-15).
 - The scheduler runs in a separate container (APScheduler), or as a simple sleep loop.
 - A manual CLI runs a date range: `python -m app.etl.run --start YYYY-MM-DD --end YYYY-MM-DD`. The benchmarks use it to time the ETL over 100k, 1M and 10M events (NFR-05).
 

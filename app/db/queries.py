@@ -5,7 +5,7 @@ db.shipments.insert_one(shipment_doc)
 db.events.insert_many(batch, ordered=False)
 
 # AP-04 status update, only if the new event is newer.
-# In the consumer: build one UpdateOne per shipment (last event of the batch) and send with bulk_write.
+# In the direct insert path: build one UpdateOne per shipment (last event of the batch) and send with bulk_write.
 db.shipments.update_one(
     {"_id": shipment_id,
      "$or": [{"current_status.last_event_ts": {"$lt": ts}},
