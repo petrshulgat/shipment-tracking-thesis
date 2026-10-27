@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+
+# Local settings
+.env
+
+# Notes for the AI assistant (kept local)
+CLAUDE.md
+instructions-for-ai.txt
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

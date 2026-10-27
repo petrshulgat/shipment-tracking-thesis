@@ -1,0 +1,6 @@
+# Pinned versions so every run uses the same libraries (NFR-09).
+pymongo==4.19.0
+fastapi==0.162.0
+uvicorn==0.54.0
+apscheduler==3.11.3   # 3.x API (BlockingScheduler) is used in app/etl/scheduler.py
+pytest==9.1.1
