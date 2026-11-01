@@ -1,7 +1,5 @@
 # Entity Relationship Diagram
 
-Renders automatically on GitHub, GitLab, VS Code (Markdown preview with Mermaid support) and https://mermaid.live.
-
 ```mermaid
 erDiagram
   FACILITIES ||--o{ EVENTS : "facility_id"
