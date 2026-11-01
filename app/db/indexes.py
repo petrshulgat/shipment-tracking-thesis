@@ -3,6 +3,9 @@
 Usage:
     from app.db.indexes import apply_indexes
     apply_indexes(db, "full")
+
+CLI:
+    python -m app.db.indexes minimal
 """
 from pymongo import ASCENDING, IndexModel
 from pymongo.database import Database
@@ -58,3 +61,13 @@ def apply_indexes(db: Database, config: str) -> None:
     for collection, models in INDEX_CONFIGS[config].items():
         if models:
             db[collection].create_indexes(models)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    from app.db.client import get_db
+
+    p = argparse.ArgumentParser()
+    p.add_argument("config", choices=list(INDEX_CONFIGS))
+    apply_indexes(get_db(), p.parse_args().config)

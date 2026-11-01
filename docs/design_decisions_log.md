@@ -32,6 +32,7 @@ How to use: add a new row whenever a decision is made. Never delete old decision
 | D-22 | `events` is a regular collection with secondary indexes | Time-series collection; bucket pattern | A time-series collection has no unique `_id` index, so D-19 (idempotent inserts) would not work; regular collections support all planned indexes (O-02) | No automatic bucketing or compression, so storage is larger at 10M events | Decided (resolves O-01) |
 | D-23 | FastAPI uses the synchronous PyMongo client; endpoints are plain `def` functions | PyMongo async API (`AsyncMongoClient`); Motor | Same driver and query code as ingestion, ETL and benchmarks; FastAPI runs `def` endpoints in a thread pool, so blocking database calls do not block the server | FastAPI's async support is not used; concurrency is limited by the thread pool size | Decided |
 | D-24 | FastAPI as the API layer | Flask, Django REST | Pydantic validation of requests and responses, automatic Swagger docs (the only UI, D-06) | None significant | Decided (supersedes D-04) |
+| D-25 | Events by facility (AP-07) and by courier (AP-11) return at most `limit` events sorted by `ts`, default 100; shipment history (AP-06) has no limit | No limit; cursor pagination | At 10M events one facility can have hundreds of thousands of events in a window; a limit keeps responses small and latency stable. History stays complete because FR-07 requires the full history and one shipment has only a few events | Clients must narrow the time window to see more; no pagination yet | Decided |
 
 ## Open decisions 
 

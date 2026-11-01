@@ -10,11 +10,11 @@
 | AP-04 | Update current status per batch, direct insert path only | FR-05 | write | shipments | filter `_id`, `last_event_ts` older than new ts; set `current_status` | very high | must not slow AP-02 |
 | AP-05 | Get current status | FR-06 | read | shipments | filter `_id`; returns `current_status` | high | p95 < 20 ms at 1M events (NFR-03) |
 | AP-06 | Get event history | FR-07 | read | events | filter `shipment_id`; sort `ts` asc | high | p95 < 50 ms at 1M events (NFR-02) |
-| AP-07 | Events by facility and time range | FR-08 | read | events | filter `facility_id`, `ts` range; sort `ts` | medium | none yet |
+| AP-07 | Events by facility and time range | FR-08 | read | events | filter `facility_id`, `ts` range; sort `ts`; limit (D-25) | medium | none yet |
 | AP-08 | ETL scan and aggregation | FR-09 | scan | events (+ shipments, facilities) | group by shipment, event type, hub, courier over a time window | batch | roughly linear runtime (NFR-05) |
 | AP-09 | Write ETL results | FR-10 | write | analytics | upsert metric docs | batch | none |
 | AP-10 | Get metrics via API | FR-10 | read | analytics | filter `metric`, `scope.type`, `period_start` | medium | none yet |
-| AP-11 | Events by courier and time range (new) | FR-08 (extension) | read | events | filter `courier_id`, `ts` range; sort `ts` | low | none yet |
+| AP-11 | Events by courier and time range (new) | FR-08 (extension) | read | events | filter `courier_id`, `ts` range; sort `ts`; limit (D-25) | low | none yet |
 
 ## 2. Example documents
 
@@ -59,9 +59,11 @@ Dates (`created_at`, `ts`, `last_event_ts`, `period_*`, `computed_at`) are shown
 {"_id": "HUB-BUD-01", "name": "Budapest Hub", "type": "hub", "city": "Budapest", "country": "HU"}
 ```
 
+`type` is `hub` (sorting centre) or `depot` (local base for pickup and delivery). Only hubs count for `events_per_hub` (D-14).
+
 ### couriers
 ```json
-{"_id": "CUR-0042", "name": "K. Nagy", "home_facility_id": "HUB-DEB-01", "vehicle_type": "van"}
+{"_id": "CUR-0042", "name": "K. Nagy", "home_facility_id": "DEP-DEB-01", "vehicle_type": "van"}
 ```
 
 ### analytics
@@ -107,7 +109,7 @@ db.events.find({"shipment_id": shipment_id}).sort("ts", 1)
 
 # AP-07 events by facility and time range
 db.events.find({"facility_id": facility_id,
-                "ts": {"$gte": start, "$lt": end}}).sort("ts", 1)
+                "ts": {"$gte": start, "$lt": end}}).sort("ts", 1).limit(limit)
 
 # AP-08 ETL example: events per hub for one day window (D-11, D-14)
 # hub_ids = [f["_id"] for f in db.facilities.find({"type": "hub"}, {"_id": 1})]
@@ -138,7 +140,7 @@ db.analytics.find({"metric": metric, "scope.type": t, "period_start": {"$gte": s
 
 # AP-11 events by courier and time range
 db.events.find({"courier_id": courier_id,
-                "ts": {"$gte": start, "$lt": end}}).sort("ts", 1)
+                "ts": {"$gte": start, "$lt": end}}).sort("ts", 1).limit(limit)
 ```
 
 ## 4. Index plan (the "full" configuration for experiment O-02)
