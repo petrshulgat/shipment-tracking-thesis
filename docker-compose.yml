@@ -12,16 +12,16 @@ services:
       timeout: 5s
       retries: 5
 
-  # Add this once the code exists. Inside Docker use mongo:27017.
-  #
-  # api:
-  #   build: .
-  #   command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000
-  #   ports: ["8000:8000"]
-  #   environment:
-  #     MONGO_URI: mongodb://mongo:27017
-  #   depends_on:
-  #     mongo: {condition: service_healthy}
+  api:
+    build: .
+    container_name: tracking-api
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"     # Swagger UI: http://localhost:8000/docs
+    environment:
+      MONGO_URI: mongodb://mongo:27017   # inside Docker, MongoDB is reached by its service name
+    depends_on:
+      mongo: {condition: service_healthy}
 
 volumes:
   mongo_data:

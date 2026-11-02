@@ -4,3 +4,4 @@ fastapi==0.162.0
 uvicorn==0.54.0
 apscheduler==3.11.3   # 3.x API (BlockingScheduler) is used in app/etl/scheduler.py
 pytest==9.1.1
+httpx2==2.16.0        # needed by FastAPI's TestClient in tests/test_api.py
