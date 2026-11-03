@@ -5,7 +5,7 @@ flowchart LR
   subgraph DC["Docker Compose environment"]
     direction LR
  
-    GEN["<b>Data Generator</b><br/>Python, Faker, fixed seed<br/>shipments + events<br/>final current_status for bulk"]
+    GEN["<b>Data Generator</b><br/>Python, fixed seed<br/>shipments + events<br/>final current_status for bulk"]
  
     DIRECT["<b>Direct Inserter</b><br/>batches of N events<br/>insert_many (AP-02)<br/>+ status update (AP-04)"]
  

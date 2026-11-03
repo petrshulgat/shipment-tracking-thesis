@@ -11,26 +11,35 @@ DUPLICATE_KEY_ERROR = 11000
 DEFAULT_LIMIT = 100  # D-25
 
 
+def _insert_skipping_duplicates(collection, docs):
+    """Insert docs, skipping ones whose _id already exists (D-19). Returns the number inserted.
+
+    ordered=False: a duplicate _id does not stop the rest of the batch.
+    Any error other than a duplicate key is raised.
+    """
+    if not docs:
+        return 0
+    try:
+        return len(collection.insert_many(docs, ordered=False).inserted_ids)
+    except BulkWriteError as e:
+        if any(err["code"] != DUPLICATE_KEY_ERROR for err in e.details["writeErrors"]):
+            raise
+        return e.details["nInserted"]
+
+
 # AP-01 create shipment
 def create_shipment(db, shipment):
     db.shipments.insert_one(shipment)
 
 
+# AP-01 for many shipments at once (generator / inserter); safe to rerun
+def insert_shipments(db, shipments):
+    return _insert_skipping_duplicates(db.shipments, shipments)
+
+
 # AP-02 / AP-03 insert events
 def insert_events(db, events):
-    """Insert events, skipping ones that already exist (D-19). Returns the number inserted.
-
-    ordered=False: a duplicate _id does not stop the rest of the batch.
-    Any error other than a duplicate key is raised.
-    """
-    if not events:
-        return 0
-    try:
-        return len(db.events.insert_many(events, ordered=False).inserted_ids)
-    except BulkWriteError as e:
-        if any(err["code"] != DUPLICATE_KEY_ERROR for err in e.details["writeErrors"]):
-            raise
-        return e.details["nInserted"]
+    return _insert_skipping_duplicates(db.events, events)
 
 
 # AP-04 update current status (direct insert path only)

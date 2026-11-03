@@ -52,6 +52,8 @@ Dates (`created_at`, `ts`, `last_event_ts`, `period_*`, `computed_at`) are shown
   "source": "scanner"
 }
 ```
+Event types and order: D-27. IDs: `SHP-0000001` and `SHP-0000001-03` (D-29); the examples use older placeholder IDs. `source` is `system` (`label_created`, `returned`), `courier_app` (courier events) or `scanner` (hub events).
+
 `courier_id` is set only for courier-handled events (`picked_up`, `out_for_delivery`, `delivered`, `delivery_failed`). For the other event types it is `null` (or omitted).
 
 ### facilities
