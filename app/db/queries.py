@@ -42,6 +42,14 @@ def insert_events(db, events):
     return _insert_skipping_duplicates(db.events, events)
 
 
+def status_from_event(event):
+    """The current_status document. Both ingestion paths use it, so their status matches."""
+    return {"status": event["event_type"],
+            "last_event_ts": event["ts"],
+            "last_facility_id": event.get("facility_id"),
+            "last_courier_id": event.get("courier_id")}
+
+
 # AP-04 update current status (direct insert path only)
 def update_current_status(db, events):
     """Set current_status from a batch of events. Returns the number of shipments changed.
@@ -61,10 +69,7 @@ def update_current_status(db, events):
             {"_id": shipment_id,
              "$or": [{"current_status.last_event_ts": {"$lt": e["ts"]}},
                      {"current_status.last_event_ts": {"$exists": False}}]},
-            {"$set": {"current_status": {"status": e["event_type"],
-                                         "last_event_ts": e["ts"],
-                                         "last_facility_id": e.get("facility_id"),
-                                         "last_courier_id": e.get("courier_id")}}},
+            {"$set": {"current_status": status_from_event(e)}},
         )
         for shipment_id, e in latest.items()
     ]

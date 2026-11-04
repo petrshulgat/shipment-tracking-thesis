@@ -23,5 +23,17 @@ services:
     depends_on:
       mongo: {condition: service_healthy}
 
+  # Not started by `docker compose up`. Run with: docker compose run --rm --build benchmark
+  benchmark:
+    build: .
+    profiles: ["benchmark"]
+    command: python -m benchmarks.insert_benchmark
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    volumes:
+      - ./benchmarks/results:/code/benchmarks/results   # results are saved on the host
+    depends_on:
+      mongo: {condition: service_healthy}
+
 volumes:
   mongo_data:

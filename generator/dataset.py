@@ -14,6 +14,7 @@ Usage:
 import random
 from datetime import datetime, timedelta, timezone
 
+from app.db.queries import status_from_event
 from generator.reference_data import DEFAULT_SEED, FIRST_NAMES, LAST_NAMES
 
 PERIOD_START = datetime(2026, 3, 1, tzinfo=timezone.utc)
@@ -130,8 +131,11 @@ def make_shipment(rng, number, cities, couriers_by_depot, period_start=PERIOD_ST
 
 
 def generate_dataset(n_events, facilities, couriers, seed=DEFAULT_SEED,
-                     period_start=PERIOD_START, period_days=PERIOD_DAYS):
-    """Yield (shipment, events) pairs until exactly n_events events are produced."""
+                     period_start=PERIOD_START, period_days=PERIOD_DAYS, with_status=False):
+    """Yield (shipment, events) pairs until exactly n_events events are produced.
+
+    with_status=True adds the final current_status from the last event (bulk path, D-17).
+    """
     rng = random.Random(seed)
     cities, couriers_by_depot = build_network(facilities, couriers)
     period_end = period_start + timedelta(days=period_days)
@@ -143,4 +147,6 @@ def generate_dataset(n_events, facilities, couriers, seed=DEFAULT_SEED,
         events = [e for e in events if e["ts"] < period_end]  # still in progress at period end
         events = events[: n_events - produced]                # hit the exact count
         produced += len(events)
+        if with_status:
+            shipment["current_status"] = status_from_event(events[-1])  # ts increases (D-21)
         yield shipment, events
