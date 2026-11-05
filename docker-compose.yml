@@ -35,5 +35,29 @@ services:
     depends_on:
       mongo: {condition: service_healthy}
 
+  # Run with: docker compose run --rm --build query-benchmark
+  query-benchmark:
+    build: .
+    profiles: ["benchmark"]
+    command: python -m benchmarks.query_benchmark
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    volumes:
+      - ./benchmarks/results:/code/benchmarks/results
+    depends_on:
+      mongo: {condition: service_healthy}
+      benchmark-api: {condition: service_started}
+
+  # A second API that reads the benchmark database, for the API-level measurements (D-34)
+  benchmark-api:
+    build: .
+    profiles: ["benchmark"]
+    command: uvicorn app.api.main:app --host 0.0.0.0 --port 8000
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: tracking_benchmark
+    depends_on:
+      mongo: {condition: service_healthy}
+
 volumes:
   mongo_data:

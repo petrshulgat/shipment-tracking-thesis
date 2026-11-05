@@ -33,7 +33,8 @@ INDEX_CONFIGS: dict[str, dict[str, list[IndexModel]]] = {
                        name="events_facility_ts"),                      # AP-07
             IndexModel([("courier_id", ASCENDING), ("ts", ASCENDING)],
                        name="events_courier_ts",                        # AP-11
-                       partialFilterExpression={"courier_id": {"$type": "string"}}),
+                       # Matches every string, skips null (D-35)
+                       partialFilterExpression={"courier_id": {"$gt": ""}}),
             IndexModel([("ts", ASCENDING)], name="events_ts"),          # AP-08
         ],
         "analytics": [

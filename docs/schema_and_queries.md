@@ -153,7 +153,7 @@ db.events.find({"courier_id": courier_id,
 | events | `_id` (automatic) | idempotent inserts | yes |
 | events | `(shipment_id, ts)` | AP-06 | yes |
 | events | `(facility_id, ts)` | AP-07 | no |
-| events | `(courier_id, ts)`, partial: `courier_id` exists as a string | AP-11 | no |
+| events | `(courier_id, ts)`, partial: `courier_id` > `""`, so only string values (D-35) | AP-11 | no |
 | events | `(ts)` | AP-08 time window | no |
 | analytics | `(metric, scope.type, period_start)` | AP-10 | yes |
 
