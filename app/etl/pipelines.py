@@ -14,11 +14,15 @@ def _window(start, end):
 def avg_delivery_time(start, end):
     """One document: {_id: None, n, avg_ms} for deliveries in the window."""
     return [
+        # Keep only the deliveries of this day (D-11, D-12)
         {"$match": {**_window(start, end), "event_type": "delivered"}},
+        # Join: attach the matching shipment, as an array in the field `s`
         {"$lookup": {"from": "shipments", "localField": "shipment_id",
                      "foreignField": "_id", "as": "s",
                      "pipeline": [{"$project": {"created_at": 1}}]}},
+        # Turn the one-element array into a plain object
         {"$unwind": "$s"},
+        # _id None = one group for everything. Date minus date gives milliseconds
         {"$group": {"_id": None,
                     "n": {"$sum": 1},
                     "avg_ms": {"$avg": {"$subtract": ["$ts", "$s.created_at"]}}}},
@@ -43,6 +47,8 @@ def delivery_outcomes(start, end, by_courier):
 def events_per_hub(start, end, hub_ids):
     """One doc per hub: {_id: facility_id, count}."""
     return [
+        # All events of this day at a hub (D-11, D-14)
         {"$match": {**_window(start, end), "facility_id": {"$in": hub_ids}}},
+        # One group per facility; add 1 for each event
         {"$group": {"_id": "$facility_id", "count": {"$sum": 1}}},
     ]

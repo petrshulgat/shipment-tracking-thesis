@@ -23,6 +23,15 @@ services:
     depends_on:
       mongo: {condition: service_healthy}
 
+  # Runs the batch ETL every day at 01:00 UTC (FR-11, D-20)
+  etl-scheduler:
+    build: .
+    command: python -u -m app.etl.scheduler
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    depends_on:
+      mongo: {condition: service_healthy}
+
   # Not started by `docker compose up`. Run with: docker compose run --rm --build benchmark
   benchmark:
     build: .

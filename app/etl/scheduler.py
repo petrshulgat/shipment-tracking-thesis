@@ -7,10 +7,15 @@ from app.db.client import get_db
 from .run import run_range
 
 
+def daily_window(now):
+    """Yesterday + the day before, which catches late events (D-15)."""
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return today - timedelta(days=2), today
+
+
 def daily_job():
-    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    # yesterday + the day before (catches late events)
-    print(run_range(get_db(), today - timedelta(days=2), today))
+    start, end = daily_window(datetime.now(timezone.utc))
+    print(run_range(get_db(), start, end))
 
 
 if __name__ == "__main__":

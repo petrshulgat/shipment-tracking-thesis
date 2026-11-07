@@ -27,8 +27,8 @@ if __name__ == "__main__":
     p.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     p.add_argument("--seed", type=int, default=DEFAULT_SEED)
     p.add_argument("--reset", action="store_true", help="drop shipments and events first")
-    p.add_argument("--indexes", choices=list(INDEX_CONFIGS), default="minimal",
-                   help="index config applied by --reset (O-02)")
+    p.add_argument("--indexes", choices=list(INDEX_CONFIGS), default="full",
+                   help="index config applied by --reset (D-36)")
     a = p.parse_args()
 
     db = get_db()

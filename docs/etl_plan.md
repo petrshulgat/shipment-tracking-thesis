@@ -51,7 +51,7 @@ Collection `analytics`, one document per metric, scope and period:
   "value": 0.94,
   "n": 100,
   "computed_at": "2026-03-02T01:00:00Z",
-  "run_id": "etl_2026-03-01_20260302T010000"
+  "run_id": "etl_2026-03-01_20260302T010000000000"
 }
 ```
 
@@ -63,7 +63,7 @@ Collection `analytics`, one document per metric, scope and period:
 
 ## 5. Schedule (FR-11)
 
-- A daily job runs at 01:00 UTC.
+- A daily job runs at 01:00 UTC. It finds nothing to compute for old simulated dates; use the manual CLI for those.
 - It computes the previous day and recomputes the day before, to catch late events (D-15).
 - The scheduler runs in a separate container with APScheduler (D-20).
 - A manual CLI runs a date range: `python -m app.etl.run --start YYYY-MM-DD --end YYYY-MM-DD`. The benchmarks use it to time the ETL over 100k, 1M and 10M events (NFR-05).
@@ -87,4 +87,4 @@ Acceptance criterion 3: insert a small set of hand-made events, run the ETL, and
 
 ## 9. Implementation timing
 
-The code is written in Month 5. A draft skeleton exists in `app/etl/` (`pipelines.py`, `metrics.py`, `run.py`, `scheduler.py`).
+The code is in `app/etl/` (`pipelines.py`, `metrics.py`, `run.py`, `scheduler.py`). Tests with a hand-computed sample are in `tests/test_etl.py` (acceptance criterion 3).

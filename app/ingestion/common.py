@@ -11,7 +11,7 @@ from generator.dataset import generate_dataset
 from generator.reference_data import DEFAULT_SEED, load_reference_data
 
 
-def reset_database(db, index_config="minimal"):
+def reset_database(db, index_config="full"):  # D-36
     """Start from a clean state (D-05): empty shipments and events, fresh reference data and indexes."""
     db.shipments.drop()
     db.events.drop()
