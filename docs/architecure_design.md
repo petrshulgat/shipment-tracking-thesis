@@ -28,7 +28,6 @@ flowchart LR
  
     BENCH["<b>Benchmark Module</b><br/>insert throughput, query latency,<br/>ETL runtime"]
     RES[/"benchmarks/results<br/>tables, charts"/]
-    DASH["<b>Dashboard</b> (optional)<br/>Streamlit"]
   end
  
   %% Direct insert path
@@ -61,8 +60,6 @@ flowchart LR
   BENCH -.->|query latency| API
   BENCH -.->|ETL CLI runtime| ETL
   BENCH --> RES
-  RES -.-> DASH
-  AN -.-> DASH
  
   classDef gen fill:#f1f3f5,stroke:#495057,color:#212529;
   classDef direct fill:#dbe4ff,stroke:#3b5bdb,color:#1b2a6b;
@@ -77,7 +74,7 @@ flowchart LR
   class BULK bulk;
   class API api;
   class SCHED,ETL etl;
-  class BENCH,RES,DASH mon;
+  class BENCH,RES mon;
   class SH,EV,REF,AN,IDX db;
 ```
  

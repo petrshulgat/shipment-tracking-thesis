@@ -2,7 +2,7 @@
 
 Thesis: MongoDB-based shipment tracking pipeline (event ingestion, batch ETL, benchmarking)
 
-Status: draft v1. Numeric targets are initial values; refine them after the first baseline measurements in Month 4.
+Status: final version. Numeric targets are initial values; refine them after the first baseline measurements in Month 4.
 
 ## 1. Goal and scope
 
@@ -28,7 +28,7 @@ Build and evaluate a shipment tracking system on MongoDB that ingests high-frequ
 | FR-11 | Schedule the ETL job to run automatically | Should |
 | FR-12 | Generate a simulated dataset of configurable size (100k, 1M, 10M events) | Must |
 | FR-13 | Run benchmarks (insert throughput, query latency, ETL runtime) and export results as tables and charts | Must |
-| FR-14 | Show metrics and benchmark results in a dashboard | Could |
+| FR-14 | Show metrics and benchmark results in a dashboard | Could | not implemented (D-39)
 | FR-15 | Couriers collection | Should |
 
 ## 3. Non-functional requirements
