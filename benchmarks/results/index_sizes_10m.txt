@@ -1,0 +1,20 @@
+Index sizes and MongoDB cache use after loading 10M events (D-37)
+Bulk loader, `full` indexes, database tracking_benchmark, run inside Docker.
+Environment: see environment.txt. Cache limit is MongoDB's default: 50% of (memory visible to Docker - 1 GB).
+
+loaded 10000000 events in 517 s, 22538 events/s
+
+events: 10000000 docs, data 2024 MB, on disk 363 MB, all indexes 961 MB
+  _id_                                  151 MB
+  events_shipment_ts                    198 MB
+  events_facility_ts                    249 MB
+  events_courier_ts                      93 MB
+  events_ts                             270 MB
+
+shipments: 1158984 docs, data 426 MB, on disk 91 MB, all indexes 15 MB
+  _id_                                   15 MB
+
+cache size limit:          3417 MB
+in cache at end of load:   2989 MB
+pages read from disk during load:  1163661
+pages written to disk during load: 4937238
