@@ -57,19 +57,21 @@ def run_once(db, method, run, batch_size, index_config, n_events, repeat):
     }
 
 
-def plan_runs(sizes, repeats):
+def plan_runs(sizes, repeats, methods=None, index_configs=None):
     """All combinations. The repeat loop is outermost, so slow periods on the laptop
-    affect one repeat of each combination rather than all repeats of one."""
+    affect one repeat of each combination rather than all repeats of one.
+    methods and index_configs optionally pick a subset (D-37)."""
     return [(m, r, b, i, n, repeat)
             for repeat in range(1, repeats + 1)
             for n in sizes
-            for i in INDEX_CONFIGS
+            for i in (index_configs or INDEX_CONFIGS)
             for m, r, b in METHODS
-            if m != "single" or n <= SINGLE_MAX_EVENTS]
+            if (methods is None or m in methods)
+            and (m != "single" or n <= SINGLE_MAX_EVENTS)]
 
 
-def run_experiment(db, sizes, repeats, out_path):
-    runs = plan_runs(sizes, repeats)
+def run_experiment(db, sizes, repeats, out_path, methods=None, index_configs=None):
+    runs = plan_runs(sizes, repeats, methods, index_configs)
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)
         writer.writeheader()
@@ -105,11 +107,14 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=SIZES)
     p.add_argument("--repeats", type=int, default=REPEATS)
+    p.add_argument("--methods", nargs="+", choices=[m for m, _, _ in METHODS])
+    p.add_argument("--index-configs", nargs="+", choices=INDEX_CONFIGS)
+    p.add_argument("--out", default="insert_results.csv", help="file name in benchmarks/results/")
     a = p.parse_args()
 
     RESULTS_DIR.mkdir(exist_ok=True)
     db = get_db(BENCHMARK_DB)
     write_environment(db, RESULTS_DIR / "environment.txt")
-    total = run_experiment(db, a.sizes, a.repeats, RESULTS_DIR / "insert_results.csv")
+    total = run_experiment(db, a.sizes, a.repeats, RESULTS_DIR / a.out, a.methods, a.index_configs)
     db.client.drop_database(BENCHMARK_DB)
-    print(f"Finished {total} runs. Results: benchmarks/results/insert_results.csv")
+    print(f"Finished {total} runs. Results: benchmarks/results/{a.out}")

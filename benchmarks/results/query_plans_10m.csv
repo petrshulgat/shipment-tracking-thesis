@@ -1,0 +1,6 @@
+query,index_config,n_events,stage,index_name,docs_examined,keys_examined,returned
+AP-05,full,10000000,ID_LOOKUP,,1,1,1
+AP-06,full,10000000,IXSCAN,events_shipment_ts,11,11,11
+AP-07,full,10000000,IXSCAN,events_facility_ts,100,100,100
+AP-10,full,10000000,IXSCAN,analytics_metric_scope_period,1400,1400,1400
+AP-11,full,10000000,IXSCAN,events_courier_ts,100,100,100

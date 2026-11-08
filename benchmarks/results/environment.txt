@@ -1,6 +1,6 @@
 CPU: Intel(R) Core(TM) i5-10210U CPU @ 1.60GHz
 CPUs visible to Docker: 8
-Memory visible to Docker: 8046816 kB
+Memory visible to Docker: 8046808 kB
 MongoDB: 7.0.45
 Python: 3.14.10
 PyMongo: 4.19.0

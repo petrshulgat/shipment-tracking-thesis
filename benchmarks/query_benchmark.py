@@ -2,6 +2,7 @@
 
 Run inside Docker:  docker compose run --rm --build query-benchmark
 Quick smoke run:    docker compose run --rm query-benchmark python -m benchmarks.query_benchmark --sizes 1000 --rounds 1
+Month 6 (D-37):     add --sizes 10000000 --index-configs full --queries AP-05 AP-06 AP-07 AP-10 AP-11
 
 For each dataset size and index config: load the data, save the query plans,
 then time each query. Results are appended run by run, as in insert_benchmark.py.
@@ -20,8 +21,10 @@ import httpx2
 
 from app.db import queries
 from app.db.client import get_db
+from app.etl.run import run_range
 from app.ingestion.bulk import run_bulk
 from app.ingestion.common import reset_database
+from benchmarks.etl_benchmark import ETL_DAYS, ETL_END, ETL_START
 from benchmarks.insert_benchmark import BENCHMARK_DB, INDEX_CONFIGS, RESULTS_DIR, SIZES, write_environment
 from generator.dataset import PERIOD_DAYS, PERIOD_START
 from generator.reference_data import DEFAULT_SEED
@@ -31,17 +34,24 @@ ROUNDS = 3
 FAST_CALLS, SCAN_CALLS = 1000, 100      # calls per round (D-34)
 FAST_WARMUP, SCAN_WARMUP = 100, 10      # calls before measuring, not counted
 
-QUERIES = ["AP-05", "AP-06", "AP-07", "AP-11"]
+QUERIES = ["AP-05", "AP-06", "AP-07", "AP-11"]  # default; AP-10 needs ETL output first
+ALL_QUERIES = QUERIES + ["AP-10"]
 API_QUERIES = ["AP-05", "AP-06"]
 
-# Which queries must read every event in each index config (schema_and_queries.md section 4)
-FULL_SCANS = {"none": {"AP-06", "AP-07", "AP-11"}, "minimal": {"AP-07", "AP-11"}, "full": set()}
+# Which queries must read every document in each index config (schema_and_queries.md section 4)
+FULL_SCANS = {"none": {"AP-06", "AP-07", "AP-10", "AP-11"}, "minimal": {"AP-07", "AP-11"}, "full": set()}
+
+# Valid (metric, scope type) pairs for AP-10 inputs (docs/etl_plan.md section 3)
+METRIC_SCOPES = [("avg_delivery_time_s", "global"), ("delivery_success_rate", "global"),
+                 ("delivery_success_rate", "courier"), ("failed_attempts", "global"),
+                 ("failed_attempts", "courier"), ("events_per_hub", "hub")]
 
 DB_CALLS = {
     "AP-05": queries.get_current_status,
     "AP-06": queries.get_history,
     "AP-07": queries.events_by_facility,
     "AP-11": queries.events_by_courier,
+    "AP-10": queries.get_metrics,
 }
 API_PATHS = {"AP-05": "/shipments/{}/status", "AP-06": "/shipments/{}/events"}
 
@@ -81,6 +91,9 @@ def make_inputs(query, rng, ids, count):
     """Arguments for `count` calls of a query. A fixed seed gives every config the same inputs."""
     if query in ("AP-05", "AP-06"):
         return [(rng.choice(ids["shipments"]),) for _ in range(count)]
+    if query == "AP-10":  # metrics from a random day of the ETL window onwards
+        return [(*rng.choice(METRIC_SCOPES), ETL_START + timedelta(days=rng.randrange(ETL_DAYS)))
+                for _ in range(count)]
     key = "facilities" if query == "AP-07" else "couriers"
     return [(rng.choice(ids[key]), *random_day(rng)) for _ in range(count)]
 
@@ -119,6 +132,9 @@ def explain_query(db, query, ids):
         cursor = db.shipments.find({"_id": ids["shipments"][0]}, {"current_status": 1})
     elif query == "AP-06":
         cursor = db.events.find({"shipment_id": ids["shipments"][0]}).sort("ts", 1)
+    elif query == "AP-10":
+        cursor = (db.analytics.find({"metric": "delivery_success_rate", "scope.type": "courier",
+                                     "period_start": {"$gte": ETL_START}}).sort("period_start", 1))
     elif query == "AP-07":
         cursor = (db.events.find({"facility_id": "HUB-BUD-01", "ts": {"$gte": start, "$lt": end}})
                   .sort("ts", 1).limit(queries.DEFAULT_LIMIT))
@@ -144,23 +160,26 @@ def summarise_plan(explain):
             "returned": stats["nReturned"]}
 
 
-def plan_runs(sizes):
-    return [(n, i) for n in sizes for i in INDEX_CONFIGS]
+def plan_runs(sizes, index_configs=None):
+    return [(n, i) for n in sizes for i in (index_configs or INDEX_CONFIGS)]
 
 
-def run_combination(db, n_events, index_config, rounds, client, write_result, write_plan):
+def run_combination(db, n_events, index_config, rounds, client, write_result, write_plan,
+                    query_names=QUERIES):
     """Load one dataset, save its query plans, then measure every query."""
     reset_database(db, index_config)
     run_bulk(db, n_events)
+    if "AP-10" in query_names:
+        run_range(db, ETL_START, ETL_END)  # AP-10 reads ETL output (D-37)
     ids = load_ids(db)
 
-    for query in QUERIES:
+    for query in query_names:
         summary = summarise_plan(explain_query(db, query, ids))
         write_plan({"query": query, "index_config": index_config, "n_events": n_events, **summary})
 
-    levels = [("database", q, lambda *args, c=DB_CALLS[q]: c(db, *args)) for q in QUERIES]
+    levels = [("database", q, lambda *args, c=DB_CALLS[q]: c(db, *args)) for q in query_names]
     if client:
-        levels += [("api", q, api_call(client, q)) for q in API_QUERIES]
+        levels += [("api", q, api_call(client, q)) for q in API_QUERIES if q in query_names]
 
     for level, query, call in levels:
         rng = random.Random(DEFAULT_SEED)  # same inputs for every index config
@@ -184,7 +203,8 @@ def wait_for_api(client, attempts=60):
     raise RuntimeError(f"API not reachable at {API_URL}")
 
 
-def run_experiment(db, sizes, rounds, client, results_path, plans_path):
+def run_experiment(db, sizes, rounds, client, results_path, plans_path,
+                   index_configs=None, query_names=QUERIES):
     with open(results_path, "w", newline="") as rf, open(plans_path, "w", newline="") as pf:
         results = csv.DictWriter(rf, fieldnames=RESULT_COLUMNS)
         plans = csv.DictWriter(pf, fieldnames=PLAN_COLUMNS)
@@ -199,8 +219,9 @@ def run_experiment(db, sizes, rounds, client, results_path, plans_path):
             plans.writerow(row)
             pf.flush()
 
-        for n_events, index_config in plan_runs(sizes):
-            run_combination(db, n_events, index_config, rounds, client, write_result, write_plan)
+        for n_events, index_config in plan_runs(sizes, index_configs):
+            run_combination(db, n_events, index_config, rounds, client, write_result, write_plan,
+                            query_names)
 
 
 if __name__ == "__main__":
@@ -208,6 +229,9 @@ if __name__ == "__main__":
     p.add_argument("--sizes", type=int, nargs="+", default=SIZES)
     p.add_argument("--rounds", type=int, default=ROUNDS)
     p.add_argument("--no-api", action="store_true", help="skip the API-level measurements")
+    p.add_argument("--index-configs", nargs="+", choices=INDEX_CONFIGS)
+    p.add_argument("--queries", nargs="+", choices=ALL_QUERIES, default=QUERIES)
+    p.add_argument("--suffix", default="", help="added to the result file names, e.g. _10m")
     a = p.parse_args()
 
     RESULTS_DIR.mkdir(exist_ok=True)
@@ -216,7 +240,7 @@ if __name__ == "__main__":
     client = None if a.no_api else httpx2.Client(base_url=API_URL, timeout=60)
     if client:
         wait_for_api(client)
-    run_experiment(db, a.sizes, a.rounds, client,
-                   RESULTS_DIR / "query_results.csv", RESULTS_DIR / "query_plans.csv")
+    run_experiment(db, a.sizes, a.rounds, client, RESULTS_DIR / f"query_results{a.suffix}.csv",
+                   RESULTS_DIR / f"query_plans{a.suffix}.csv", a.index_configs, a.queries)
     db.client.drop_database(BENCHMARK_DB)
-    print("Finished. Results: benchmarks/results/query_results.csv")
+    print(f"Finished. Results: benchmarks/results/query_results{a.suffix}.csv")

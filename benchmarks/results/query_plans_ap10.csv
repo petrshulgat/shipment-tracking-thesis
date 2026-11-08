@@ -1,0 +1,3 @@
+query,index_config,n_events,stage,index_name,docs_examined,keys_examined,returned
+AP-10,full,100000,IXSCAN,analytics_metric_scope_period,1180,1180,1180
+AP-10,full,1000000,IXSCAN,analytics_metric_scope_period,1400,1400,1400

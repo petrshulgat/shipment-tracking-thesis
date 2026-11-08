@@ -55,3 +55,9 @@ def test_status_history_after_bulk_load(db):
     shipment = db.shipments.find_one({"_id": "SHP-0000001"})
     last = queries.get_history(db, "SHP-0000001")[-1]
     assert shipment["current_status"]["status"] == last["event_type"]
+
+
+def test_plan_runs_subset_for_10m():
+    runs = plan_runs([10_000_000], repeats=3, methods=["batch_1000", "bulk"], index_configs=["full"])
+    assert len(runs) == 6  # 2 methods * 1 index config * 3 repeats (D-37)
+    assert {r[0] for r in runs} == {"batch_1000", "bulk"} and {r[3] for r in runs} == {"full"}
