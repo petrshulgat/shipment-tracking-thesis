@@ -7,7 +7,7 @@ flowchart LR
  
     GEN["<b>Data Generator</b><br/>Python, fixed seed<br/>shipments + events<br/>final current_status for bulk"]
  
-    DIRECT["<b>Direct Inserter</b><br/>batches of N events<br/>insert_many (AP-02)<br/>+ status update (AP-04)"]
+    DIRECT["<b>Direct Inserter</b><br/>batches of 1,000 events (D-33)<br/>insert_many (AP-02)<br/>+ status update (AP-04)"]
  
     BULK["<b>Bulk Loader</b><br/>insert_many in large chunks (AP-03)<br/>shipments with final status + events<br/>no AP-04"]
  
@@ -17,7 +17,7 @@ flowchart LR
       EV[("events<br/>append-only")]
       REF[("facilities, couriers")]
       AN[("analytics<br/>ETL output")]
-      IDX{{"indexes: none / minimal / full<br/>(experiment O-02)"}}
+      IDX{{"indexes: none / minimal / full<br/>compared in experiments, full chosen (D-36)"}}
     end
  
     CLIENT["<b>Client</b><br/>Swagger UI /docs"]
@@ -57,8 +57,9 @@ flowchart LR
   %% Monitoring / benchmarking
   BENCH -.->|load test| BULK
   BENCH -.->|load test| DIRECT
-  BENCH -.->|query latency| API
-  BENCH -.->|ETL CLI runtime| ETL
+  BENCH -.->|query latency, API level| API
+  BENCH -.->|query latency, database level| MONGO
+  BENCH -.->|ETL runtime| ETL
   BENCH --> RES
  
   classDef gen fill:#f1f3f5,stroke:#495057,color:#212529;
