@@ -1,6 +1,6 @@
 # Shipment Tracking on MongoDB
 
-Master's thesis project: a shipment/delivery tracking backend built on MongoDB, and a set of
+Bachelor's thesis project: a shipment/delivery tracking backend built on MongoDB, and a set of
 experiments that measure how fast it is and how it scales.
 
 Tracking events (a package was picked up, arrived at a hub, was delivered, ...) are written to
